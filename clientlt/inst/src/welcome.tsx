@@ -19,7 +19,6 @@ import { Switch } from "@/components/ui/switch"
 const Welcome=() =>{
   return (
     <div className='container mx-auto flex justify-center p-4  '>
-
     <Card className="w-[400px]">
       <CardHeader>
         <CardTitle>Welcome {"sanjana"}
