@@ -1,13 +1,16 @@
 const express = require('express');
-const WebSocket = require('ws');
+const ws = require('ws');
+const http=require('http');
 const cors = require('cors');
 var jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 var cookieParser = require('cookie-parser')
 const {MongoClient,  ObjectId}  = require('mongodb');
 
-
 const app = express();
+const server = http.createServer(app);
+const wss = new ws.Server({ server });
+
 
 app.use(express.json());
 app.use(cookieParser());
@@ -79,19 +82,30 @@ app.post('/login', function(req, res){
   
 });
 
-app.listen(80,  function(){
-    console.log("listening on 80");
+// app.listen(80,  function(){
+//     console.log("listening on 80");
+// });
+
+
+
+
+
+
+wss.on('connection', function connection(ws) {
+  ws.on('error', console.error);
+
+  ws.on('message', function message(data) {
+    console.log('received: %s', data);
+  });
+
+  ws.send('something');
 });
+server.listen(80)
+// const httpServer=http.createServer((req, res)=>{
+//   res.writeHead(200, { 'Content-Type': 'text/plain' });
+// });
 
 
-// const wss = new WebSocket.WebSocketServer({ port: 8080 });
+// httpServer.listen(82, ()=>{
 
-// wss.on('connection', function connection(ws) {
-//   ws.on('error', console.error);
-
-//   ws.on('message', function message(data) {
-//     console.log('received: %s', data);
-//   });
-
-//   ws.send('something');
 // });
