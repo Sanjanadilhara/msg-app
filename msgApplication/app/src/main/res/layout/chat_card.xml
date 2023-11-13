@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="100dp"
+    android:orientation="vertical">
+
+
+    <LinearLayout
+        android:id="@+id/consCard"
+        android:layout_width="match_parent"
+        android:layout_height="99dp"
+        android:padding="10dp"
+        android:orientation="horizontal">
+    <com.example.msgapplication.cusViews.Avatar
+        android:id="@+id/consAvatar"
+        android:layout_width="79dp"
+        android:layout_height="79dp"
+        android:src="@drawable/avt"
+        android:scaleType="centerCrop"/>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+        <TextView
+            android:id="@+id/conName"
+            android:layout_marginTop="10dp"
+            android:layout_marginStart="20dp"
+            android:textSize="18sp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="TextView" />
+        <TextView
+            android:layout_marginTop="2dp"
+            android:layout_marginStart="20dp"
+            android:textSize="16sp"
+            android:textColor="#999"
+            android:id="@+id/lastMsg"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="last message" />
+        </LinearLayout>
+
+    </LinearLayout>
+    <View
+        android:layout_marginHorizontal="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDD"/>
+</LinearLayout>
