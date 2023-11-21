@@ -4,8 +4,25 @@ const http=require('http');
 const cors = require('cors');
 var jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
-var cookieParser = require('cookie-parser')
+var cookieParser = require('cookie-parser');
 const {MongoClient,  ObjectId}  = require('mongodb');
+const e = require('express');
+const cookieHandle=require('./cookieParse');
+
+
+
+
+
+
+
+let onlineUsers=new Map();
+
+
+
+
+
+
+
 
 const app = express();
 const server = http.createServer(app);
@@ -93,12 +110,65 @@ app.post('/login', function(req, res){
 
 wss.on('connection', function connection(ws) {
   ws.on('error', console.error);
-
-  ws.on('message', function message(data) {
-    console.log('received: %s', data);
+  
+  ws.on('close', function close(){
+      onlineUsers.delete(ws?.uid);
+      console.log("user gone offline "+onlineUsers.size);
   });
 
-  ws.send('something');
+  ws.on('message', function message(data) {
+    let msgData;
+    try{
+      msgData=JSON.parse(data);
+    }catch{
+      return 1;
+    }
+    let result={msgId:msgData.msgId, stat:-1};
+    let cookies=cookieHandle.parse(msgData.cookie);
+
+    jwt.verify(cookies.auth, 'instmsg098', function(err, decoded){
+      if(!err){
+
+          if(!(msgData?.init === undefined)){
+            onlineUsers.set(decoded.id, ws);
+            console.log("user gone online "+onlineUsers.size);
+            ws.uid=decoded.id;
+            result.stat=1;
+            ws.send(JSON.stringify(result));
+          }else{
+
+            if(onlineUsers.has(msgData.to)){
+              onlineUsers.get(msgData.to).send(JSON.stringify({from:decoded.id, message:msgData.message}));
+              db.collection('messages').insertOne({from:new ObjectId(decoded.id), to:new ObjectId(msgData.to), message:msgData.message, sent:1}).then((res)=>{
+                result.stat=2;
+                ws.send(JSON.stringify(result));
+              }).catch((err)=>{
+                result.stat=-3;
+                ws.send(JSON.stringify(result));
+              });
+            }
+            else{
+              db.collection('messages').insertOne({from:new ObjectId(decoded.id), to:new ObjectId(msgData.to), message:msgData.message, sent:0}).then((res)=>{
+                result.stat=2;
+                ws.send(JSON.stringify(result));
+              }).catch((err)=>{
+                result.stat=-3;
+                ws.send(JSON.stringify(result));
+              });
+            }
+
+
+          }
+          
+        }else{
+          result.stat=-2;
+          ws.send(JSON.stringify(result));
+        }
+    });
+  
+  });
+
+  // ws.send('something');
 });
 server.listen(80)
 // const httpServer=http.createServer((req, res)=>{
