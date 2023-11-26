@@ -191,7 +191,7 @@ wss.on('connection', function connection(ws) {
 
             if(onlineUsers.has(message.to.toString())){ //if user is online
 
-              onlineUsers.get(message.to.toString()).send(JSON.stringify({from:decoded.id, message:message.message, date:date}));
+              onlineUsers.get(message.to.toString()).send(JSON.stringify({from:decoded.id, message:message.message, date:date, type:"message"}));
 
               message.sent=MSG_SENT_AND_RESPONSE_SENT;
              
