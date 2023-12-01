@@ -8,7 +8,9 @@ var cookieParser = require('cookie-parser');
 const {MongoClient,  ObjectId}  = require('mongodb');
 const e = require('express');
 const cookieHandle=require('./cookieParse');
-const dataModule=require("./parseData");
+const comObj=require("./models/comObj");
+const messageController=require("./controllers/messageController");
+const initController=require("./controllers/userInitController");
 
 
 
@@ -20,9 +22,7 @@ let onlineUsers=new Map();
 //consts
 
 const INIT_OK=3;
-const MSG_SENT_AND_RESPONSE_SENT=2;
-const MSG_SENT_RESPOSE_NOT_SENT=1
-const MSG_RECORDED=0;
+
 
 //consts
 
@@ -46,7 +46,7 @@ app.use(cors({
 
 const url = 'mongodb://localhost:27017';
 const client = new MongoClient(url);
-var db=undefined;
+let db=undefined;
 
 client.connect().then((result) => {
   db=client.db('instmsg');
@@ -125,119 +125,28 @@ wss.on('connection', function connection(ws) {
   });
 
   ws.on('message', function message(data) {
-    let msgData=new dataModule(data);
-    if(msgData.fail){console.log("fail");return;};
-
+    let msgData=comObj(data);
+    if(msgData == null){ws.send(JSON.stringify({type:'error', error:'wrong format'}));return;}
     let result=new Object();
     let cookies=cookieHandle.parse(msgData.cookie);
 
+
+
     jwt.verify(cookies.auth, 'instmsg098', function(err, decoded){
       if(!err){
-
+        msgData.from=new ObjectId(decoded.id);//set user id
         let date=new Date();
 
           if(msgData.type=="init"){
 
             onlineUsers.set(decoded.id, ws);
             console.log("user gone online "+onlineUsers.size);
-            ws.uid=decoded.id;
-
-
-            result.type="init"
-            result.stat=1;
-            ws.send(JSON.stringify(result));
-
-
-            db.collection("messages").find({to:new ObjectId(decoded.id), sent:MSG_RECORDED}).sort({date:1}).toArray()//send unsent messages
-            .then((data)=>{
-              data.forEach(element => {
-
-                ws.send(JSON.stringify({type:"message", from:element.from, message:element.message, date:element.date}));
-                sendResponse(element);
-
-              });
-            }).catch((res)=>{});
-
-
-
-
-            db.collection("messages").find({from:new ObjectId(decoded.id), sent:MSG_SENT_RESPOSE_NOT_SENT}).sort({date:1}).toArray()//send unsent responses
-            .then((data)=>{
-              data.forEach(element => {
-
-                ws.send(JSON.stringify({type:"messageStat", msgId:element.msgId, stat:element.sent}));
-                //update the database message stat(sent);
-                db.collection("messages").updateOne({_id:element._id}, {$set:{sent:MSG_SENT_AND_RESPONSE_SENT}}).then((res)=>{
-                  console.log("msg Updated success")
-                })
-                .catch((res)=>{
-                  console.log("fail to update");
-                });
-      
-               });
-
-
-            }).catch((res)=>{});
-
-
+            ws.uid=decoded.id;//set user id
+            ws.send(JSON.stringify({type:"init", stat:1}));
+            initController(db, msgData, ws,  onlineUsers);
           }
           else if(msgData.type=="message"){
-
-            let message=new dataModule.message(msgData);
-            if(message.fail){return;}
-            message.from=new ObjectId(decoded.id);
-            message.date=date;
-
-
-            if(onlineUsers.has(message.to.toString())){ //if user is online
-
-              onlineUsers.get(message.to.toString()).send(JSON.stringify({from:decoded.id, message:message.message, date:date, type:"message"}));
-
-              message.sent=MSG_SENT_AND_RESPONSE_SENT;
-             
-              console.log("message   "+message.msgId);
-
-              db.collection('messages').insertOne(message)
-              .then((res)=>{
-
-                result.type="messageStat";
-                result.stat=MSG_SENT_AND_RESPONSE_SENT;
-                result.msgId=message.msgId;
-                ws.send(JSON.stringify(result));
-
-              })
-              .catch((err)=>{
-
-                result.type="messageStat";
-                result.stat=-3;
-                result.msgId=message.msgId;
-                ws.send(JSON.stringify(result));
-
-
-              });
-
-
-            }
-            else{   //if user is offline
-
-              message.sent=MSG_RECORDED;
-
-              db.collection('messages').insertOne(message).then((res)=>{
-                result.stat=MSG_RECORDED;
-                result.msgId=message.msgId;
-                result.type="messageStat"
-                ws.send(JSON.stringify(result));
-              }).catch((err)=>{
-                result.type="messageStat"
-                result.msgId=message.msgId;
-                result.stat=-3;
-                ws.send(JSON.stringify(result));
-              });
-
-
-            }
-
-
+            messageController(db, msgData, ws, onlineUsers);
           }
           else if(msgData?.type=="request"){
 
