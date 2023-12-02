@@ -50,7 +50,7 @@ class Messages{
 
     updateDataBase(db, resExec){
         this.messages.forEach((item)=>{
-            if(item?.from!=undefined && item?.to != undefined && item?.message != undefined){
+            if(item?.from!=undefined && item?.to != undefined && item?.message != undefined && item?.message != undefined){
                 if(item?._id===undefined){
                     item.date=new Date();
                     item.sent=Messages.MSG_RECORDED;

@@ -1,5 +1,6 @@
 const Messages = require("../models/messages");
 const messages=require("../models/messages");
+const requests=require("../models/requests");
 
 
 module.exports=function(db, data, currentUser,onlineUsers){
@@ -51,5 +52,38 @@ module.exports=function(db, data, currentUser,onlineUsers){
         else{
             console.log("fail to update database");
         }
+    });
+
+    let requestsData=new requests();
+    requestsData.retriveRequests(db.collection('requests').find({to:data.from, stat:requests.REQ_RECORDED}),
+    (success, item)=>{
+        if(success){
+            currentUser.send(JSON.stringify(requestsData.prepareToSend(item)));
+            item.stat=requests.REQ_SENT;
+        }
+    }, 
+    (allSuccess)=>{
+        if(allSuccess){
+            requestsData.updateDataBase(db, (success, item)=>{
+                if(!success){
+                    console.log("db update error init controll requests");
+                }
+            });
+        }
+        else{console.log("request db update error");}
+    });
+
+    let acceptedRequests=new requests();
+    acceptedRequests.retriveRequests(db.collection('requests').find({from:data.from, stat:requests.REQ_ACCEPTED}), 
+    (success, item)=>{
+        currentUser.send(JSON.stringify(acceptedRequests.prepareAcceptRespond(item)));
+        item.stat=requests.REQ_ACCEPT_RESPOND_SENT;
+    }, 
+    (success)=>{
+        acceptedRequests.updateDataBase(db, (success, item)=>{
+            if(!success){
+                console.log("db update error init controll accept requests");
+            }
+        });
     });
 }

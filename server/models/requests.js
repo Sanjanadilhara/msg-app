@@ -3,6 +3,7 @@ const {MongoClient,  ObjectId}  = require('mongodb');
 
 
 class Requests{
+    static REQ_ACCEPT_RESPOND_SENT=3
     static REQ_ACCEPTED=2;
     static REQ_SENT=1
     static REQ_RECORDED=0;
@@ -11,18 +12,23 @@ class Requests{
         this.requests=[];
       
     }
-
     prepareToSend(item){
-        return {type:"message", message:item.message, from:item.from.toString(), date:item.date};
+        return {type:"request", to:item.to ,from:item.from.toString(), date:item.date};
+    }
+    prepareAccept(item){
+        return {type:"request", accept:1, to:item.to, from:item.from.toString(), date:item.date};
+    }
+    prepareAcceptRespond(item){
+        return {type:"requestAcceptRespose", accept:1, to:item.to, from:item.from.toString(), date:item.date, reqId:item.reqId};
     }
     prepareSendRespose(item){
-        return {type:"msgRespose", to:item.to.toString(), msgId:item.msgId, sent:item.sent};
+        return {type:"requestResponse", to:item.to.toString, stat:item.stat, reqId:item.reqId};
     }
 
     addRequest(obj){
         let temReq=new Object();
 
-        let temkeys=['from', 'to', '_id', 'stat', 'date'];
+        let temkeys=['from', 'to', '_id', 'stat', 'date', 'reqId'];
         for(const [key, value] of Object.entries(obj)){
             if(temkeys.includes(key)){
                 if((key=='_id' || key=='from' || key=='to') &&  typeof value == 'string'){
@@ -37,7 +43,7 @@ class Requests{
     }
 
 
-    retriveMessages(qry, execUpdated, execAllUpdated){
+    retriveRequests(qry, execUpdated, execAllUpdated){
         qry.toArray().then((data)=>{
             data.forEach((item)=>{
                 this.addRequest(item);
@@ -50,7 +56,7 @@ class Requests{
 
     updateDataBase(db, resExec){
         this.requests.forEach((item)=>{
-            if(item?.from!=undefined && item?.to != undefined ){
+            if(item?.from!=undefined && item?.to != undefined && item?.reqId != undefined ){
                 if(item?._id===undefined){
                     item.date=new Date();
                     item.stat=Requests.REQ_RECORDED;
@@ -61,7 +67,7 @@ class Requests{
                         resExec(false, item);
                     });
                 }else{
-                    db.collection("messages").updateOne({_id:item._id}, {$set:{stat:item.stat}}).then((res)=>{
+                    db.collection("requests").updateOne({_id:item._id}, {$set:{stat:item.stat}}).then((res)=>{
                         resExec(true, item);
                     }).catch((err)=>{
                         console.log("fail to update data", item);

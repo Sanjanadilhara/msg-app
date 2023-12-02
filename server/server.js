@@ -11,6 +11,7 @@ const cookieHandle=require('./cookieParse');
 const comObj=require("./models/comObj");
 const messageController=require("./controllers/messageController");
 const initController=require("./controllers/userInitController");
+const requestController=require("./controllers/requestController");
 
 
 
@@ -134,11 +135,11 @@ wss.on('connection', function connection(ws) {
 
     jwt.verify(cookies.auth, 'instmsg098', function(err, decoded){
       if(!err){
-        msgData.from=new ObjectId(decoded.id);//set user id
         let date=new Date();
-
-          if(msgData.type=="init"){
-
+        
+        if(msgData.type=="init"){
+          
+            msgData.from=new ObjectId(decoded.id);//set user id
             onlineUsers.set(decoded.id, ws);
             console.log("user gone online "+onlineUsers.size);
             ws.uid=decoded.id;//set user id
@@ -146,10 +147,12 @@ wss.on('connection', function connection(ws) {
             initController(db, msgData, ws,  onlineUsers);
           }
           else if(msgData.type=="message"){
+            msgData.from=new ObjectId(decoded.id);//set user id
             messageController(db, msgData, ws, onlineUsers);
           }
           else if(msgData?.type=="request"){
-
+            msgData.uid=new ObjectId(decoded.id);//set user id
+            requestController(db, msgData, ws, onlineUsers);
           }
 
           
