@@ -3,7 +3,7 @@ const messages=require("../models/messages");
 
 module.exports=function(db, data, currentUser,  onlineUsers){
     let messageData=new messages();
-    messageData.addMessage(data);
+    if(!messageData.addMessage(data)){currentUser.send(JSON.stringify({type:'mesgRespose', status:-1, msgId:data?.msgId}));return;}
     messageData.updateDataBase(db, (succes, data)=>{
 
         if(succes){

@@ -8,10 +8,12 @@ var cookieParser = require('cookie-parser');
 const {MongoClient,  ObjectId}  = require('mongodb');
 const e = require('express');
 const cookieHandle=require('./cookieParse');
-const comObj=require("./models/comObj");
 const messageController=require("./controllers/messageController");
 const initController=require("./controllers/userInitController");
 const requestController=require("./controllers/requestController");
+const comObj=require("./models/comObj");
+const Users=require("./models/users");
+const userInitController = require('./controllers/userInitController');
 
 
 
@@ -108,6 +110,23 @@ app.post('/login', function(req, res){
   
 });
 
+app.post("/search", function (req, res){
+  console.log("key: "+req.body.key);
+  let tusers=new Users();
+  tusers.retriveusers(db.collection("users").find({username:{$regex:req.body.key}}), (success, item)=>{
+
+    delete item.password;
+    delete item.email;
+  }, (success)=>{
+    if(success){
+      res.send(JSON.stringify({users:tusers.users}));
+    }
+    else{
+      res.send(JSON.stringify({users:[], status:-2}));
+    }
+  });
+});
+
 // app.listen(80,  function(){
 //     console.log("listening on 80");
 // });
@@ -129,39 +148,39 @@ wss.on('connection', function connection(ws) {
     let msgData=comObj(data);
     if(msgData == null){ws.send(JSON.stringify({type:'error', error:'wrong format'}));return;}
     let result=new Object();
-    let cookies=cookieHandle.parse(msgData.cookie);
-
-
-
-    jwt.verify(cookies.auth, 'instmsg098', function(err, decoded){
-      if(!err){
-        let date=new Date();
-        
-        if(msgData.type=="init"){
-          
-            msgData.from=new ObjectId(decoded.id);//set user id
-            onlineUsers.set(decoded.id, ws);
-            console.log("user gone online "+onlineUsers.size);
-            ws.uid=decoded.id;//set user id
-            ws.send(JSON.stringify({type:"init", stat:1}));
-            initController(db, msgData, ws,  onlineUsers);
-          }
-          else if(msgData.type=="message"){
-            msgData.from=new ObjectId(decoded.id);//set user id
-            messageController(db, msgData, ws, onlineUsers);
-          }
-          else if(msgData?.type=="request"){
-            msgData.uid=new ObjectId(decoded.id);//set user id
-            requestController(db, msgData, ws, onlineUsers);
-          }
-
-          
+    
+    
+    
+    let date=new Date();
+    
+    if(msgData.type=="init"){
+      
+      let cookies=cookieHandle.parse(msgData?.cookie);
+      jwt.verify(cookies?.auth, 'instmsg098', function(err, decoded){
+        if(!err){
+          msgData.from=new ObjectId(decoded.id);//set user id
+          ws.uid=decoded.id;
+          onlineUsers.set(decoded.id, ws);
+          console.log("user gone online "+onlineUsers.size);
+          ws.uid=decoded.id;//set user id
+          ws.send(JSON.stringify({type:"init", stat:1}));
+          initController(db, msgData, ws,  onlineUsers);
         }else{
           result.stat=-2;
           result.type="auth";
           ws.send(JSON.stringify(result));
         }
-    });
+        });
+      }else if(msgData.type=="message"){
+        console.log(msgData);
+        msgData.from=ws?.uid===undefined?undefined:new ObjectId(ws?.uid);//set user id
+        messageController(db, msgData, ws, onlineUsers);
+      }else if(msgData?.type=="request"){
+        msgData.uid=ws?.uid===undefined?undefined:new ObjectId(ws?.uid);//set user id
+        requestController(db, msgData, ws, onlineUsers);
+      }
+
+          
   
   });
 
