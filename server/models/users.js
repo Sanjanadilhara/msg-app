@@ -19,7 +19,7 @@ class Users{
         return {type:"msgRespose", to:item?.to.toString(), msgId:item?.msgId, sent:item?.sent};
     }
 
-    addMessage(obj){
+    addUser(obj){
         try{
             let temUser=new Object();
 
@@ -46,17 +46,18 @@ class Users{
     retriveusers(qry, execUpdated, execAllUpdated){
         qry.toArray().then((data)=>{
             data.forEach((item)=>{
-                this.addMessage(item);
+                this.addUser(item);
                 execUpdated(true, this.users[this.users.length-1]);
             });
             execAllUpdated(true);
         }).catch((res)=>{execAllUpdated(false);});
+    
 
     }
 
     updateDataBase(db, resExec){
         this.users.forEach((item)=>{
-            if(item?.fname!=undefined && item?.lname != undefined && item?.email != undefined && item?.username != undefined){
+            if(item?.password!=undefined && item?.email != undefined && item?.username != undefined){
                 if(item?._id===undefined){
                     db.collection("users").insertOne(item).then((res)=>{
                         resExec(true, item);

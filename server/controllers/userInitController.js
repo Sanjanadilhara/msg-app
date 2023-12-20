@@ -58,7 +58,7 @@ module.exports=function(db, data, currentUser,onlineUsers){
     requestsData.retriveRequests(db.collection('requests').find({to:data.from, stat:requests.REQ_RECORDED}),
     (success, item)=>{
         if(success){
-            currentUser.send(JSON.stringify(requestsData.prepareToSend(item)));
+            requestsData.prepareToSend(item, db, currentUser);
             item.stat=requests.REQ_SENT;
         }
     }, 

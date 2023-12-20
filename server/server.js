@@ -79,11 +79,24 @@ app.get('/', function (req, res) {
 app.post('/signup', function(req, res){
   // console.log(req.body.email);
   bcrypt.hash(req.body.password, 10, function(err, hash) {
-    db.collection('users').insertMany([{email:req.body.email, password:hash}]).then((result)=>{
-      res.json({status:1});
-    }).catch((err)=>{
-      res.json({status:0});
-    });
+    if(!err){
+      req.body.password=hash;      
+      let temusers=new Users();
+      temusers.addUser(req.body);
+      temusers.updateDataBase(db, (success, item)=>{
+        if(success){
+          res.send("\"status\":1");
+        }
+        else{
+          res.send("\"status\":-1");
+        }
+      });
+    }
+    else{
+      res.send("\"status\":-1");
+    }
+    
+
   });
 });
 
@@ -114,7 +127,6 @@ app.post("/search", function (req, res){
   console.log("key: "+req.body.key);
   let tusers=new Users();
   tusers.retriveusers(db.collection("users").find({username:{$regex:req.body.key}}), (success, item)=>{
-
     delete item.password;
     delete item.email;
   }, (success)=>{

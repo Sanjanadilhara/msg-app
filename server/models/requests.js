@@ -1,5 +1,5 @@
 const {MongoClient,  ObjectId}  = require('mongodb');
-
+const Users=require("./users");
 
 
 class Requests{
@@ -12,17 +12,34 @@ class Requests{
         this.requests=[];
       
     }
-    prepareToSend(item){
-        return {type:"request", to:item.to ,from:item.from.toString(), date:item.date};
+    prepareToSend(item, db, userCon){
+        let temusers=new Users();
+        let toret=undefined;
+        temusers.retriveusers(db.collection("users").find({_id:new ObjectId(item.from)}), (success ,userData)=>{
+            userCon.send(JSON.stringify({type:"request", to:item.to.toString() ,from:item.from.toString(), date:item.date, username:userData.username}));  
+        }, (success)=>{
+            if(!success){
+                userCon.send(JSON.stringify({type:"request", stat:"unexpected error"}));
+            }
+        });
+
     }
-    prepareAccept(item){
-        return {type:"request", accept:1, to:item.to, from:item.from.toString(), date:item.date};
+    prepareAccept(item, db, userCon){
+        let temusers=new Users();
+        let toret=undefined;
+        temusers.retriveusers(db.collection("users").find({_id:new ObjectId(item.from)}), (success ,userData)=>{
+            userCon.send(JSON.stringify({type:"requestAccept", accept:1, to:item.to, date:item.date, username:userData.username}));  
+        }, (success)=>{
+            if(!success){
+                userCon.send(JSON.stringify({type:"requestAccept", stat:"unexpected error"}));
+            }
+        });
     }
     prepareAcceptRespond(item){
         return {type:"requestAcceptRespose", accept:1, to:item.to, from:item.from.toString(), date:item.date, reqId:item.reqId};
     }
     prepareSendRespose(item){
-        return {type:"requestResponse", to:item.to.toString, stat:item.stat, reqId:item.reqId};
+        return {type:"requestResponse", to:item.to.toString(), stat:item.stat, reqId:item.reqId};
     }
 
     addRequest(obj){
